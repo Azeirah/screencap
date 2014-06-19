@@ -43,7 +43,7 @@
     <body>
         <h1>HTML5 Video maker</h1>
         <p>Select some photos, set some options, and you will be rewarded with a .webm file and a .gif :).</p><br>
-        
+        <h2>Note that converting to .gif is <em>VERY</em> cpu-intensive, if you pick a high quality, it will be taking a long time too. It takes 10 minutes to convert ~100 png files to a .gif on my laptop.</h2>
         <span id="status">Select some images.</span><br><br>
         <div id="drag">DROP!
             <button id="fbutton">Select Images</button>
@@ -51,6 +51,8 @@
                 <div><label>Width:</label><input id="width" type="number" step="1" value="500"></div>
                 <div><label>Height:</label><input id="height" type="number" step="1" value="300"></div>
                 <div><label>Video Frame Rate:</label><input id="framerate" type="number" step="1" value="15"></div>
+                <div><label>Gif quality (lower is better):</label><input type="number" step="1" value="10" min="1" max="20" id="quality"></div>
+                <div><label>Make gif:</label><input type="checkbox" checked="true" id="doGif"></div>
             </div>
             <button id="createvideo">Create Video</button>
         </div>
@@ -76,31 +78,35 @@
         //image to video via Whammy
         var video = new Whammy.Video(15);
         var filesarr = [];
+        var doGif;
         var gif;
         createvideo.addEventListener("click", function() {
             document.getElementById('status').innerHTML = "Working... Please Wait.";
             document.getElementById('awesome').src = "";
             ctx = 0;
+            doGif = document.getElementById("doGif").checked;
             canvas.width = document.getElementById("width").value;
             canvas.height = document.getElementById("height").value;
             video = new Whammy.Video(document.getElementById("framerate").value);
-            gif = new GIF({
-                quality: 1,
-                width: canvas.width,
-                height: canvas.height,
-                workers: 4
-            });
-            gif.on('finished', function(blob) {
-                var objectURL = URL.createObjectURL(blob);
-                var dlGif = document.getElementById('downloadGif');
-                console.log(dlGif);
-                dlGif.style.display = "show";
-                dlGif.href = objectURL;
-                document.getElementById('awesomeGif').src = objectURL;
-            });
-            gif.on('start', function() {
-                console.log('gif started');
-            });
+            if (doGif) {
+                gif = new GIF({
+                    quality: document.getElementById("quality").value,
+                    width: canvas.width,
+                    height: canvas.height,
+                    workers: 4
+                });
+                gif.on('finished', function(blob) {
+                    var objectURL = URL.createObjectURL(blob);
+                    var dlGif = document.getElementById('downloadGif');
+                    console.log(dlGif);
+                    dlGif.style.display = "show";
+                    dlGif.href = objectURL;
+                    document.getElementById('awesomeGif').src = objectURL;
+                });
+                gif.on('start', function() {
+                    console.log('gif started');
+                });
+            }
             //if we have images loaded
             if (filesarr.length > 0){
                 //loop through them and process
@@ -142,9 +148,11 @@
                 //load image and drop into canvas
                 img.onload = function() {
                     video.add(context);
-                    gif.addFrame(img, {
-                        delay: 1/parseInt(document.getElementById("framerate").value, 10)
-                    });
+                    if (doGif) {
+                        gif.addFrame(img, {
+                            delay: 1/parseInt(document.getElementById("framerate").value, 10)
+                        });
+                    }
                     context.clearRect(0, 0, context.canvas.width,context.canvas.height);
                     context.drawImage(img, 0, 0, canvas.width, canvas.height);
                     ctx++;
@@ -169,9 +177,11 @@
                 document.getElementById('download').style.display = '';
                 document.getElementById('download').href = url;
                 document.getElementById('status').innerHTML = "Compiled Video in " + (end_time - start_time) + "ms, file size: " + Math.ceil(output.size / 1024) + "KB";
-                console.log("rendering gif");
-                gif.render();
-                console.dir(gif);
+                if (doGif) {
+                    console.log("rendering gif");
+                    gif.render();
+                    console.dir(gif);
+                }
             }
         }
     </script>
